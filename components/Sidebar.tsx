@@ -13,6 +13,7 @@ import {
   LogOut,
   ShieldCheck,
   UserRoundSearch,
+  Headset,
 } from 'lucide-react';
 
 const navItems = [
@@ -20,6 +21,7 @@ const navItems = [
   { href: '/admin',     label: '회원관리',  icon: Users },
   { href: '/admin/verifications', label: '검증관리', icon: ShieldCheck },
   { href: '/reviews',   label: '익명평가',  icon: UserRoundSearch },
+  { href: '/inquiries', label: '1:1 문의', icon: Headset },
   { href: '/complaints', label: '민원관리', icon: MessageSquareWarning },
   { href: '/notes',     label: '관리자 메모', icon: StickyNote },
   { href: '/settings',  label: '설정',      icon: Settings },
