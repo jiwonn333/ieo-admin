@@ -154,3 +154,122 @@ export async function getVerificationStats(): Promise<{
     totalPendingVerifications: pendingVerifRes.count ?? 0,
   };
 }
+
+
+/**
+ * 프로필 사진 인증 백필
+ * - members.profile_image_urls가 존재하지만 member_verifications(profile_photo)가
+ *   없거나 'unverified'인 회원을 찾아 'pending_review'로 전환
+ * - approved / rejected / pending_review 레코드는 건드리지 않음 (멱등)
+ */
+export async function backfillProfilePhotoVerifications(): Promise<{
+  scanned: number;
+  inserted: number;
+  updated: number;
+  skipped: number;
+  errors: Array<{ member_id: string; reason: string }>;
+}> {
+  const result = {
+    scanned: 0,
+    inserted: 0,
+    updated: 0,
+    skipped: 0,
+    errors: [] as Array<{ member_id: string; reason: string }>,
+  };
+
+  // 1. profile_image_urls가 존재하는 회원 조회
+  const { data: members, error: membersError } = await supabaseAdmin
+    .from('members')
+    .select('id, profile_image_urls')
+    .not('profile_image_urls', 'is', null);
+
+  if (membersError) {
+    console.error('Failed to fetch members for backfill:', membersError);
+    throw new Error(`Failed to fetch members: ${membersError.message}`);
+  }
+
+  const candidates = (members ?? []).filter(
+    (m) => Array.isArray(m.profile_image_urls) && m.profile_image_urls.length > 0,
+  );
+  result.scanned = candidates.length;
+
+  if (candidates.length === 0) return result;
+
+  // 2. 해당 회원들의 profile_photo verification 일괄 조회
+  const memberIds = candidates.map((m) => m.id as string);
+  const { data: verifications, error: verError } = await supabaseAdmin
+    .from('member_verifications')
+    .select('id, member_id, status')
+    .eq('verification_type', 'profile_photo')
+    .in('member_id', memberIds);
+
+  if (verError) {
+    console.error('Failed to fetch verifications for backfill:', verError);
+    throw new Error(`Failed to fetch verifications: ${verError.message}`);
+  }
+
+  const verByMember = new Map<string, { id: string; status: VerificationStatus }>();
+  for (const v of verifications ?? []) {
+    verByMember.set(v.member_id as string, {
+      id: v.id as string,
+      status: v.status as VerificationStatus,
+    });
+  }
+
+  const now = new Date().toISOString();
+
+  // 3. 회원별로 insert / update / skip 판정
+  for (const member of candidates) {
+    const memberId = member.id as string;
+    const existing = verByMember.get(memberId);
+
+    try {
+      if (!existing) {
+        // 3-a. 레코드 없음 → 신규 생성
+        const { error: insertError } = await supabaseAdmin
+          .from('member_verifications')
+          .insert({
+            member_id: memberId,
+            verification_type: 'profile_photo',
+            status: 'pending_review',
+            submitted_at: now,
+            reviewed_at: null,
+            rejection_reason: null,
+          });
+
+        if (insertError) {
+          result.errors.push({ member_id: memberId, reason: insertError.message });
+        } else {
+          result.inserted += 1;
+        }
+      } else if (existing.status === 'unverified') {
+        // 3-b. 미제출 → 심사중 전환
+        const { error: updateError } = await supabaseAdmin
+          .from('member_verifications')
+          .update({
+            status: 'pending_review',
+            submitted_at: now,
+            reviewed_at: null,
+            rejection_reason: null,
+          })
+          .eq('id', existing.id);
+
+        if (updateError) {
+          result.errors.push({ member_id: memberId, reason: updateError.message });
+        } else {
+          result.updated += 1;
+        }
+      } else {
+        // 3-c. approved / rejected / pending_review → 보존
+        result.skipped += 1;
+      }
+    } catch (e) {
+      result.errors.push({
+        member_id: memberId,
+        reason: e instanceof Error ? e.message : 'unknown error',
+      });
+    }
+  }
+
+  return result;
+}
