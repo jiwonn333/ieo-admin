@@ -4,6 +4,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { SupportInquiry } from '@/lib/supabase/inquiries';
+import { InquiryStatus } from '@/lib/constants/status';
 import { formatDate } from '@/lib/utils';
 import { Headset, Search, ChevronRight, Clock, CheckCircle2 } from 'lucide-react';
 
@@ -18,12 +19,12 @@ const CATEGORY_TABS = [
 
 const STATUS_TABS = [
   { id: 'all', label: '전체' },
-  { id: 'pending', label: '대기중' },
-  { id: 'resolved', label: '답변완료' },
+  { id: InquiryStatus.PENDING, label: '대기중' },
+  { id: InquiryStatus.ANSWERED, label: '답변완료' },
 ];
 
-function getStatusBadge(status: string) {
-  if (status === 'resolved') {
+function getStatusBadge(status: InquiryStatus) {
+  if (status === InquiryStatus.ANSWERED) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 border border-emerald-100">
         <CheckCircle2 size={12} />
@@ -71,7 +72,7 @@ export default function InquiriesPage() {
     });
   }, [inquiries, activeCategory, activeStatus, searchQuery]);
 
-  const pendingCount = inquiries.filter((i) => i.status === 'pending').length;
+  const pendingCount = inquiries.filter((i) => i.status === InquiryStatus.PENDING).length;
 
   if (loading) {
     return (

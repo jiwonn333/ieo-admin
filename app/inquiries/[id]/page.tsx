@@ -4,6 +4,7 @@ import React, { use, useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { SupportInquiry } from '@/lib/supabase/inquiries';
+import { InquiryStatus } from '@/lib/constants/status';
 import { formatDate } from '@/lib/utils';
 import {
   ArrowLeft,
@@ -48,10 +49,10 @@ export default function InquiryDetailPage({
     const res = await fetch(`/api/inquiries/${inquiry.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'resolved', adminReply: replyText.trim() }),
+      body: JSON.stringify({ status: InquiryStatus.ANSWERED, adminReply: replyText.trim() }),
     });
     if (res.ok) {
-      setInquiry((prev) => prev ? { ...prev, status: 'resolved', admin_reply: replyText.trim() } : prev);
+      setInquiry((prev) => prev ? { ...prev, status: InquiryStatus.ANSWERED, admin_reply: replyText.trim() } : prev);
     } else {
       alert('답변 등록에 실패했습니다.');
     }
@@ -64,10 +65,10 @@ export default function InquiryDetailPage({
     const res = await fetch(`/api/inquiries/${inquiry.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'pending' }),
+      body: JSON.stringify({ status: InquiryStatus.PENDING }),
     });
     if (res.ok) {
-      setInquiry((prev) => prev ? { ...prev, status: 'pending' } : prev);
+      setInquiry((prev) => prev ? { ...prev, status: InquiryStatus.PENDING } : prev);
     } else {
       alert('상태 변경에 실패했습니다.');
     }
@@ -123,7 +124,7 @@ export default function InquiryDetailPage({
               </div>
             </div>
             <div>
-              {inquiry.status === 'resolved' ? (
+              {inquiry.status === InquiryStatus.ANSWERED ? (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-4 py-1.5 text-sm font-semibold text-emerald-700 border border-emerald-100">
                   <CheckCircle2 size={16} />
                   답변완료
@@ -177,7 +178,7 @@ export default function InquiryDetailPage({
           <p className="text-sm text-neutral-400 mb-4">답변 작성 후 &quot;답변완료 처리&quot;를 누르면 상태가 변경됩니다.</p>
 
           {/* 이미 답변된 경우 기존 답변 표시 */}
-          {inquiry.status === 'resolved' && inquiry.admin_reply && (
+          {inquiry.status === InquiryStatus.ANSWERED && inquiry.admin_reply && (
             <div className="mb-4 rounded-2xl bg-emerald-50 border border-emerald-100 p-5">
               <div className="flex items-center gap-2 mb-2">
                 <CheckCircle2 size={14} className="text-emerald-600" />
@@ -198,7 +199,7 @@ export default function InquiryDetailPage({
           />
 
           <div className="mt-4 flex gap-3">
-            {inquiry.status === 'resolved' && (
+            {inquiry.status === InquiryStatus.ANSWERED && (
               <button
                 onClick={handleReopen}
                 disabled={updating}
@@ -214,7 +215,7 @@ export default function InquiryDetailPage({
               className="flex items-center gap-2 rounded-2xl bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 transition-colors disabled:opacity-30"
             >
               <CheckCircle2 size={16} />
-              {inquiry.status === 'resolved' ? '답변 수정' : '답변완료 처리'}
+              {inquiry.status === InquiryStatus.ANSWERED ? '답변 수정' : '답변완료 처리'}
             </button>
           </div>
         </section>

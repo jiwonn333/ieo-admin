@@ -1,4 +1,7 @@
 import { supabaseAdmin } from './client';
+import { TABLES } from '@/lib/constants/tables';
+import { SUPPORT_INQUIRY_COLUMNS } from '@/lib/constants/columns';
+import { InquiryStatus } from '@/lib/constants/status';
 
 export interface SupportInquiry {
   id: string;
@@ -6,7 +9,7 @@ export interface SupportInquiry {
   category: string;
   title: string;
   content: string;
-  status: string; // 'pending' | 'resolved'
+  status: InquiryStatus;
   admin_reply: string | null;
   created_at: string;
   updated_at: string;
@@ -20,7 +23,7 @@ export interface SupportInquiry {
  */
 export async function getInquiries(): Promise<SupportInquiry[]> {
   const { data, error } = await supabaseAdmin
-    .from('support_inquiries')
+    .from(TABLES.SUPPORT_INQUIRIES)
     .select(`
       *,
       members!inner (
@@ -43,7 +46,7 @@ export async function getInquiries(): Promise<SupportInquiry[]> {
       category: row.category as string,
       title: row.title as string,
       content: row.content as string,
-      status: row.status as string,
+      status: row.status as InquiryStatus,
       admin_reply: (row.admin_reply as string) ?? null,
       created_at: row.created_at as string,
       updated_at: row.updated_at as string,
@@ -58,7 +61,7 @@ export async function getInquiries(): Promise<SupportInquiry[]> {
  */
 export async function getInquiryById(id: string): Promise<SupportInquiry | null> {
   const { data, error } = await supabaseAdmin
-    .from('support_inquiries')
+    .from(TABLES.SUPPORT_INQUIRIES)
     .select(`
       *,
       members!inner (
@@ -66,7 +69,7 @@ export async function getInquiryById(id: string): Promise<SupportInquiry | null>
         app_nickname
       )
     `)
-    .eq('id', id)
+    .eq(SUPPORT_INQUIRY_COLUMNS.ID, id)
     .single();
 
   if (error) {
@@ -93,19 +96,19 @@ export async function getInquiryById(id: string): Promise<SupportInquiry | null>
 /**
  * 문의 상태 변경
  */
-export async function updateInquiryStatus(id: string, status: string, adminReply?: string): Promise<boolean> {
+export async function updateInquiryStatus(id: string, status: InquiryStatus, adminReply?: string): Promise<boolean> {
   const updateData: Record<string, unknown> = {
-    status,
+    [SUPPORT_INQUIRY_COLUMNS.STATUS]: status,
     updated_at: new Date().toISOString(),
   };
   if (adminReply !== undefined) {
-    updateData.admin_reply = adminReply;
+    updateData[SUPPORT_INQUIRY_COLUMNS.ADMIN_REPLY] = adminReply;
   }
 
   const { error } = await supabaseAdmin
-    .from('support_inquiries')
+    .from(TABLES.SUPPORT_INQUIRIES)
     .update(updateData)
-    .eq('id', id);
+    .eq(SUPPORT_INQUIRY_COLUMNS.ID, id);
 
   if (error) {
     console.error('Failed to update inquiry status:', error);
