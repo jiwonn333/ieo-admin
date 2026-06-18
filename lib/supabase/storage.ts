@@ -31,3 +31,41 @@ export async function attachSignedUrls(
     }),
   );
 }
+
+/**
+ * 검토 완료(승인/반려)된 인증의 서류 원본(Storage) + 메타행을 삭제한다.
+ * "검토 완료 후 원본 자동 삭제" 개인정보 약속 이행. service_role 필요.
+ * profile_photo 는 member_verification_files 가 없어 영향 없음(프로필 사진 보존).
+ */
+export async function deleteVerificationFiles(verificationId: string): Promise<void> {
+  const { data: files, error } = await supabaseAdmin
+    .from('member_verification_files')
+    .select('storage_bucket, storage_path')
+    .eq('verification_id', verificationId);
+
+  if (error) {
+    console.error('deleteVerificationFiles: 파일 조회 실패:', error.message);
+    return;
+  }
+  if (!files || files.length === 0) return;
+
+  // 버킷별로 묶어 Storage 원본 삭제
+  const byBucket = new Map<string, string[]>();
+  for (const f of files) {
+    if (!f.storage_bucket || !f.storage_path) continue;
+    const paths = byBucket.get(f.storage_bucket) ?? [];
+    paths.push(f.storage_path);
+    byBucket.set(f.storage_bucket, paths);
+  }
+  for (const [bucket, paths] of byBucket) {
+    const { error: rmError } = await supabaseAdmin.storage.from(bucket).remove(paths);
+    if (rmError) console.error('deleteVerificationFiles: Storage 삭제 실패:', bucket, rmError.message);
+  }
+
+  // 메타행 삭제
+  const { error: delError } = await supabaseAdmin
+    .from('member_verification_files')
+    .delete()
+    .eq('verification_id', verificationId);
+  if (delError) console.error('deleteVerificationFiles: 메타행 삭제 실패:', delError.message);
+}

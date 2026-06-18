@@ -1,5 +1,5 @@
 import { supabaseAdmin } from './client';
-import { attachSignedUrls } from './storage';
+import { attachSignedUrls, deleteVerificationFiles } from './storage';
 import type { MemberVerification, VerificationFile, VerificationQueueItem, VerificationStatus, VerificationType } from '@/features/admin/types';
 
 /**
@@ -132,6 +132,12 @@ export async function updateVerificationStatus(
         // 하지만 로그에 남겨서 추적 가능하게
       }
     }
+  }
+
+  // 4. 검토 완료(승인/반려) → 서류 원본 자동 삭제 (개인정보 약속 이행).
+  //    profile_photo 는 member_verification_files 가 없어 영향 없음.
+  if (status === 'approved' || status === 'rejected') {
+    await deleteVerificationFiles(verificationId);
   }
 
   return true;
