@@ -1,4 +1,5 @@
 import { supabaseAdmin } from './client';
+import { attachSignedUrls } from './storage';
 import type { Member, AppStatus } from '@/features/admin/types';
 
 /**
@@ -69,7 +70,19 @@ export async function getMemberById(id: string): Promise<Member | null> {
     return null;
   }
 
-  return data as Member;
+  const member = data as Member;
+  // 비공개 버킷 서류에 서명 URL 부여 (미리보기용).
+  if (member.member_verifications) {
+    await Promise.all(
+      member.member_verifications.map(async (v) => {
+        if (v.member_verification_files) {
+          v.member_verification_files = await attachSignedUrls(v.member_verification_files);
+        }
+      }),
+    );
+  }
+
+  return member;
 }
 
 /**

@@ -11,11 +11,6 @@ import {
 import { formatDate } from '@/lib/utils';
 import { FilterBar } from '@/components/ui/FilterBar';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-
-function getFileUrl(bucket: string, path: string): string {
-  return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
-}
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import {
   Search,
@@ -387,7 +382,7 @@ export default function VerificationManagementPage() {
                       <div className="grid grid-cols-1 gap-2">
                         {selectedItem.files.map((file, i) => {
                           const isImage = file.mime_type?.startsWith('image/');
-                          const fileUrl = getFileUrl(file.storage_bucket, file.storage_path);
+                          const fileUrl = file.signed_url ?? '';
                           return isImage ? (
                             <a key={file.id} href={fileUrl} target="_blank" rel="noopener noreferrer" className="group rounded-2xl overflow-hidden border border-neutral-100 bg-neutral-100 shadow-sm">
                               {/* eslint-disable-next-line @next/next/no-img-element */}

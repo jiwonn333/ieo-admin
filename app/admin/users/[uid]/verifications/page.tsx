@@ -15,11 +15,6 @@ import {
 import { formatDate } from '@/lib/utils';
 import { ArrowLeft, Check, X, RotateCcw, AlertCircle, ImageIcon } from 'lucide-react';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-
-function getFileUrl(bucket: string, path: string): string {
-  return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
-}
 
 function getVerification(member: Member, type: VerificationType): MemberVerification | null {
   return member.member_verifications?.find((v) => v.verification_type === type) ?? null;
@@ -263,7 +258,7 @@ export default function VerificationsPage() {
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                       {activeFiles.map((file, i) => {
                         const isImage = file.mime_type?.startsWith('image/');
-                        const fileUrl = getFileUrl(file.storage_bucket, file.storage_path);
+                        const fileUrl = file.signed_url ?? '';
                         return isImage ? (
                           <a
                             key={file.id}

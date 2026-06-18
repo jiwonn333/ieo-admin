@@ -1,5 +1,6 @@
 import { supabaseAdmin } from './client';
-import type { MemberVerification, VerificationQueueItem, VerificationStatus, VerificationType } from '@/features/admin/types';
+import { attachSignedUrls } from './storage';
+import type { MemberVerification, VerificationFile, VerificationQueueItem, VerificationStatus, VerificationType } from '@/features/admin/types';
 
 /**
  * 인증 심사 큐 조회 (회원 정보 포함)
@@ -37,21 +38,27 @@ export async function getVerificationQueue(): Promise<VerificationQueueItem[]> {
     return [];
   }
 
-  return (data ?? []).map((row: Record<string, unknown>) => {
-    const member = row.members as { real_name: string | null; app_nickname: string | null } | null;
-    return {
-      id: row.id as string,
-      member_id: row.member_id as string,
-      member_name: member?.real_name ?? null,
-      member_nickname: member?.app_nickname ?? null,
-      verification_type: row.verification_type as VerificationType,
-      status: row.status as VerificationStatus,
-      submitted_at: row.submitted_at as string | null,
-      reviewed_at: row.reviewed_at as string | null,
-      rejection_reason: row.rejection_reason as string | null,
-      files: (row.member_verification_files ?? []) as VerificationQueueItem['files'],
-    };
-  });
+  return Promise.all(
+    (data ?? []).map(async (row: Record<string, unknown>) => {
+      const member = row.members as { real_name: string | null; app_nickname: string | null } | null;
+      // 비공개 버킷 파일은 서명 URL 을 부여해야 어드민에서 미리보기 가능.
+      const files = await attachSignedUrls(
+        (row.member_verification_files ?? []) as VerificationFile[],
+      );
+      return {
+        id: row.id as string,
+        member_id: row.member_id as string,
+        member_name: member?.real_name ?? null,
+        member_nickname: member?.app_nickname ?? null,
+        verification_type: row.verification_type as VerificationType,
+        status: row.status as VerificationStatus,
+        submitted_at: row.submitted_at as string | null,
+        reviewed_at: row.reviewed_at as string | null,
+        rejection_reason: row.rejection_reason as string | null,
+        files,
+      };
+    }),
+  );
 }
 
 /**

@@ -31,6 +31,8 @@ export interface VerificationFile {
   original_filename: string | null;
   mime_type: string | null;
   created_at: string;
+  // 비공개 버킷(verification-documents) 조회용 임시 서명 URL. 서버에서 주입.
+  signed_url?: string | null;
 }
 
 // ─── Supabase member_verifications 테이블 ──────────────────────────────────
