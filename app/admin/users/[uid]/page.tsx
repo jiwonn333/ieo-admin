@@ -63,11 +63,21 @@ export default function AdminUserDetailPage({
 
   const handleStatusChange = useCallback(async (newStatus: AppStatus) => {
     if (!member) return;
-    if (!confirm(`회원 상태를 "${getAppStatusLabel(newStatus)}"(으)로 변경하시겠습니까?`)) return;
+
+    // 심사 거절은 검증관리와 동일하게 반려 사유를 입력받는다.
+    let rejectionReason: string | undefined;
+    if (newStatus === 'rejected') {
+      const reason = window.prompt('반려 사유를 입력하세요');
+      if (!reason) return; // 취소하거나 비우면 중단
+      rejectionReason = reason;
+    } else if (!confirm(`회원 상태를 "${getAppStatusLabel(newStatus)}"(으)로 변경하시겠습니까?`)) {
+      return;
+    }
+
     const res = await fetch(`/api/members/${member.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus }),
+      body: JSON.stringify({ status: newStatus, rejectionReason }),
     });
     if (res.ok) {
       setMember((prev) => prev ? { ...prev, app_status: newStatus } : prev);

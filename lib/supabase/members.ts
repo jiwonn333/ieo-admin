@@ -87,8 +87,15 @@ export async function getMemberById(id: string): Promise<Member | null> {
 
 /**
  * 회원 앱 상태 변경
+ *
+ * 심사 거절(rejected) 시 [rejectionReason]을 profile_photo 인증의 rejection_reason에
+ * 기록한다. 앱 차단화면이 profile_photo 의 반려 사유를 읽어 표시하기 때문.
  */
-export async function updateMemberStatus(id: string, status: AppStatus): Promise<boolean> {
+export async function updateMemberStatus(
+  id: string,
+  status: AppStatus,
+  rejectionReason?: string,
+): Promise<boolean> {
   const { error } = await supabaseAdmin
     .from('members')
     .update({ app_status: status })
@@ -97,6 +104,23 @@ export async function updateMemberStatus(id: string, status: AppStatus): Promise
   if (error) {
     console.error('Failed to update member status:', error);
     return false;
+  }
+
+  // 심사 거절 → profile_photo 인증도 반려 + 사유 기록 (앱에서 사유 노출).
+  if (status === 'rejected') {
+    const { error: verError } = await supabaseAdmin
+      .from('member_verifications')
+      .update({
+        status: 'rejected',
+        rejection_reason: rejectionReason ?? null,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq('member_id', id)
+      .eq('verification_type', 'profile_photo');
+
+    if (verError) {
+      console.error('Failed to record rejection reason on profile_photo:', verError);
+    }
   }
 
   return true;

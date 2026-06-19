@@ -15,7 +15,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { id } = await params;
   const body = await req.json();
   const status = body.status as AppStatus;
-  const success = await updateMemberStatus(id, status);
+  const rejectionReason = body.rejectionReason as string | undefined;
+  const success = await updateMemberStatus(id, status, rejectionReason);
   if (!success) {
     return NextResponse.json({ error: 'Failed to update' }, { status: 500 });
   }
