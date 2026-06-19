@@ -1,5 +1,6 @@
 import { supabaseAdmin } from './client';
 import { attachSignedUrls } from './storage';
+import { notifyVerificationResult } from './notifications';
 import type { Member, AppStatus } from '@/features/admin/types';
 
 /**
@@ -121,6 +122,9 @@ export async function updateMemberStatus(
     if (verError) {
       console.error('Failed to record rejection reason on profile_photo:', verError);
     }
+
+    // 회원에게 심사 거절 통지(인앱 알림 + FCM).
+    await notifyVerificationResult(id, 'profile_photo', false);
   }
 
   return true;

@@ -1,5 +1,6 @@
 import { supabaseAdmin } from './client';
 import { attachSignedUrls, deleteVerificationFiles } from './storage';
+import { notifyVerificationResult } from './notifications';
 import type { MemberVerification, VerificationFile, VerificationQueueItem, VerificationStatus, VerificationType } from '@/features/admin/types';
 
 /**
@@ -138,6 +139,12 @@ export async function updateVerificationStatus(
   //    profile_photo 는 member_verification_files 가 없어 영향 없음.
   if (status === 'approved' || status === 'rejected') {
     await deleteVerificationFiles(verificationId);
+    // 5. 회원에게 심사 결과 통지(인앱 알림 + FCM).
+    await notifyVerificationResult(
+      verification.member_id as string,
+      verification.verification_type as VerificationType,
+      status === 'approved',
+    );
   }
 
   return true;
