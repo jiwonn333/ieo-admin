@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const authCookie = request.cookies.get('ieo_admin_auth')
   const { pathname } = request.nextUrl
 
@@ -9,7 +9,7 @@ export function proxy(request: NextRequest) {
   // (존재 여부만 보면 ieo_admin_auth=아무값 쿠키를 위조해 우회 가능)
   const isAuthed = !!authCookie && authCookie.value === process.env.AUTH_SECRET
 
-  // Exclude static files and api routes from proxy
+  // Exclude static files and api routes from middleware
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
