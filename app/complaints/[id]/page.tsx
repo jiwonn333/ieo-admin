@@ -3,8 +3,16 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Ban, RotateCcw, ShieldAlert, MessageSquare } from 'lucide-react';
-import type { ReportDetail } from '@/lib/supabase/reports';
+import {
+  ArrowLeft,
+  Ban,
+  RotateCcw,
+  ShieldAlert,
+  MessageSquare,
+  ChevronRight,
+  ChevronDown,
+} from 'lucide-react';
+import type { ReportDetail, TranscriptMessage } from '@/lib/supabase/reports';
 import { REPORT_SUSPEND_THRESHOLD } from '@/lib/constants/tables';
 import { formatDate } from '@/lib/utils';
 
@@ -146,41 +154,61 @@ export default function ComplaintDetailPage() {
         {matchIds.length === 0 ? (
           <p className="text-sm text-gray-400">채팅 출처가 없는 신고입니다. (프로필 신고 등)</p>
         ) : (
-          <div className="space-y-5">
+          <div className="space-y-3">
             {matchIds.map((mid) => (
-              <div key={mid}>
-                <p className="text-[11px] text-gray-400 font-mono mb-2">match {mid}</p>
-                <div className="space-y-1.5">
-                  {detail.transcripts[mid].length === 0 ? (
-                    <p className="text-sm text-gray-400">메시지가 없습니다.</p>
-                  ) : (
-                    detail.transcripts[mid].map((m, i) => (
-                      <div
-                        key={i}
-                        className={`flex ${m.fromReported ? 'justify-start' : 'justify-end'}`}
-                      >
-                        <div
-                          className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm ${
-                            m.fromReported
-                              ? 'bg-rose-50 text-rose-900 border border-rose-100'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}
-                        >
-                          <p className="text-[10px] font-bold opacity-60 mb-0.5">
-                            {m.fromReported ? '신고대상' : '상대'}
-                          </p>
-                          {m.content}
-                          <p className="text-[10px] opacity-50 mt-0.5">{formatDate(m.createdAt)}</p>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
+              <TranscriptBlock key={mid} messages={detail.transcripts[mid]} />
             ))}
           </div>
         )}
       </section>
+    </div>
+  );
+}
+
+function TranscriptBlock({ messages }: { messages: TranscriptMessage[] }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="border border-gray-100 rounded-xl overflow-hidden">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+      >
+        <span className="flex items-center gap-1.5">
+          {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+          대화 보기
+          <span className="text-gray-400 font-normal">({messages.length}메시지)</span>
+        </span>
+      </button>
+
+      {open && (
+        <div className="max-h-96 overflow-y-auto border-t border-gray-100 bg-gray-50/50 p-3 space-y-1.5">
+          {messages.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-4">메시지가 없습니다.</p>
+          ) : (
+            messages.map((m, i) => (
+              <div
+                key={i}
+                className={`flex ${m.fromReported ? 'justify-start' : 'justify-end'}`}
+              >
+                <div
+                  className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm ${
+                    m.fromReported
+                      ? 'bg-rose-50 text-rose-900 border border-rose-100'
+                      : 'bg-white text-gray-800 border border-gray-200'
+                  }`}
+                >
+                  <p className="text-[10px] font-bold opacity-60 mb-0.5">
+                    {m.fromReported ? '신고대상' : '상대'}
+                  </p>
+                  {m.content}
+                  <p className="text-[10px] opacity-50 mt-0.5">{formatDate(m.createdAt)}</p>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }
