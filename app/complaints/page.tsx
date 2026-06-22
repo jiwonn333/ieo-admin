@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { MessageSquareWarning, Search, Ban, ShieldAlert } from 'lucide-react';
+import Link from 'next/link';
+import { MessageSquareWarning, Search, Ban, ShieldAlert, ChevronRight } from 'lucide-react';
 import type { ReportSummary } from '@/lib/supabase/reports';
 import { REPORT_SUSPEND_THRESHOLD } from '@/lib/constants/tables';
 import { formatDate } from '@/lib/utils';
@@ -129,7 +130,10 @@ function ReportCard({ report }: { report: ReportSummary }) {
   const reachedThreshold = report.uniqueReporters >= REPORT_SUSPEND_THRESHOLD;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+    <Link
+      href={`/complaints/${report.reportedId}`}
+      className="block bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:border-gray-300 transition"
+    >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
@@ -159,18 +163,22 @@ function ReportCard({ report }: { report: ReportSummary }) {
           <div className="rounded-lg bg-gray-50 px-2.5 py-1.5 text-sm font-semibold text-gray-600">
             누적 {report.totalReports}건
           </div>
+          <ChevronRight size={18} className="text-gray-300" />
         </div>
       </div>
 
-      {/* 신고 내역 (최근순) */}
+      {/* 최근 신고 사유 미리보기 */}
       <div className="mt-4 border-t border-gray-100 pt-3 space-y-1.5">
-        {report.reports.map((item, i) => (
+        {report.reports.slice(0, 3).map((item, i) => (
           <div key={i} className="flex items-center justify-between gap-3 text-sm">
             <span className="text-gray-700 truncate">{item.reason ?? '사유 미입력'}</span>
             <span className="text-xs text-gray-400 shrink-0">{formatDate(item.createdAt)}</span>
           </div>
         ))}
+        {report.reports.length > 3 && (
+          <p className="text-xs text-gray-400">외 {report.reports.length - 3}건</p>
+        )}
       </div>
-    </div>
+    </Link>
   );
 }
